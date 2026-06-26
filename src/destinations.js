@@ -29,6 +29,7 @@ export const DESTINATIONS = [
   { name: 'Nelson, BC', lat: 49.4928, lon: -117.2948 },
   { name: 'Cranbrook, BC', lat: 49.5097, lon: -115.7686 },
   { name: 'Prince George, BC', lat: 53.9171, lon: -122.7497 },
+  { name: 'Banff, AB', lat: 51.1784, lon: -115.5708 },
   { name: 'Coeur d\'Alene, ID', lat: 47.6777, lon: -116.7805 },
   { name: 'Sandpoint, ID', lat: 48.2766, lon: -116.5535 },
   { name: 'Lewiston, ID', lat: 46.4004, lon: -117.0177 },
