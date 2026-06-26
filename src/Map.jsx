@@ -3,13 +3,19 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { ORIGIN } from './destinations.js'
 
-// Small colored circle markers, no external image assets needed.
-function dot(color) {
+// Small colored circle markers, no external image assets needed. The selected
+// marker is larger with a bright white ring + glow so it clearly stands out.
+function dot(color, isSelected = false) {
+  const size = isSelected ? 22 : 14
+  const box = size + (isSelected ? 8 : 4)
+  const ring = isSelected
+    ? 'box-shadow:0 0 0 2px #0f172a, 0 0 0 4px #ffffff, 0 0 12px 3px rgba(255,255,255,0.9);'
+    : 'box-shadow:0 0 0 1px rgba(255,255,255,0.4);'
   return L.divIcon({
     className: 'sun-marker',
-    html: `<span style="background:${color}"></span>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: `<span style="display:block;width:${size}px;height:${size}px;border-radius:50%;border:2px solid #0f172a;background:${color};${ring}"></span>`,
+    iconSize: [box, box],
+    iconAnchor: [box / 2, box / 2],
   })
 }
 
@@ -26,7 +32,8 @@ export default function Map({ results, selected, selectedName, onSelect }) {
     const map = L.map(containerRef.current, {
       scrollWheelZoom: false,
       minZoom: 3,
-    }).setView([39.5, -114], 4)
+      zoomSnap: 0.1, // allow the fractional starting zoom below
+    }).setView([39.5, -114], 4.2)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 12,
@@ -43,14 +50,19 @@ export default function Map({ results, selected, selectedName, onSelect }) {
     ro.observe(containerRef.current)
   }, [])
 
-  // Redraw markers when results change.
+  // Redraw markers when results or the selection change. The selected marker
+  // gets the highlight icon and is lifted above the others.
   useEffect(() => {
     const layer = layerRef.current
     if (!layer) return
     layer.clearLayers()
     results.forEach((r) => {
+      const isSel = r.name === selected?.name
       const color = r.qualifies ? '#f59e0b' : '#94a3b8'
-      const m = L.marker([r.lat, r.lon], { icon: dot(color) })
+      const m = L.marker([r.lat, r.lon], {
+        icon: dot(color, isSel),
+        zIndexOffset: isSel ? 1000 : 0,
+      })
         .bindTooltip(
           `${r.name}<br>${r.best ? Math.round(r.best.tempMax) + '°F · ' + Math.round(r.best.sunFraction * 100) + '% sun' : 'no data'}`,
           { direction: 'top' },
@@ -58,7 +70,7 @@ export default function Map({ results, selected, selectedName, onSelect }) {
         .on('click', () => onSelect?.(r.name))
       layer.addLayer(m)
     })
-  }, [results, onSelect])
+  }, [results, selected, onSelect])
 
   // Pan only when the user actively picks a destination (not the default
   // winner selection on load, which would override the overview view).
