@@ -63,6 +63,11 @@ body {
   color: #1a1206; border-radius: 16px; padding: 20px 22px; margin-bottom: 22px;
   box-shadow: 0 10px 30px -10px rgba(245, 158, 11, 0.5);
 }
+.winner.heat {
+  background: linear-gradient(135deg, #0369a1 0%, #38bdf8 100%);
+  color: #052230;
+  box-shadow: 0 10px 30px -10px rgba(56, 189, 248, 0.5);
+}
 .winner-tag { text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.72rem; font-weight: 700; opacity: 0.8; }
 .winner h2 { margin: 4px 0 10px; font-size: 1.8rem; }
 .winner-stats { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 0.95rem; }

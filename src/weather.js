@@ -1,4 +1,4 @@
-import { DESTINATIONS } from './destinations.js'
+import { DESTINATIONS, ORIGIN } from './destinations.js'
 
 const DAILY_FIELDS = [
   'temperature_2m_max',
@@ -10,22 +10,46 @@ const DAILY_FIELDS = [
   'weather_code',
 ].join(',')
 
-// Default scoring criteria — "escape extremes": not too hot, not too cold,
-// plenty of sun, little rain. All adjustable from the UI.
-export const DEFAULT_CRITERIA = {
-  maxTempF: 84, // avoid anything hotter
-  minTempF: 60, // avoid anything colder
-  minSunFraction: 0.55, // at least this share of daylight must be sunshine
-  maxPrecipIn: 0.05, // basically dry
-  maxPrecipProb: 35, // low chance of rain
+// Two presets, each a mode + default (adjustable) criteria.
+//   sun  — escape clouds: sunny, not-too-hot, not-too-cold, dry.
+//   heat — escape heat: meaningfully cooler than Seattle, still pleasant.
+export const PRESETS = {
+  sun: {
+    id: 'sun',
+    label: '☀️ Find Sun',
+    tagline:
+      "The closest place to Seattle with sunny, non-extreme weather in the next 7 days.",
+    criteria: {
+      maxTempF: 84, // avoid anything hotter
+      minTempF: 60, // avoid anything colder
+      minSunFraction: 0.55, // at least this share of daylight must be sunshine
+      maxPrecipIn: 0.05, // basically dry
+      maxPrecipProb: 35, // low chance of rain
+    },
+  },
+  heat: {
+    id: 'heat',
+    label: '❄️ Escape Heat',
+    tagline:
+      "When Seattle's too hot — the nearest escape that's meaningfully cooler than home, in the next 7 days.",
+    criteria: {
+      minCoolerF: 8, // must be at least this many °F cooler than Seattle
+      maxTempF: 80, // and still no hotter than this (relief, not a sauna)
+      minTempF: 45, // but not freezing-cold either
+      maxPrecipProb: 60, // rain matters less when you're fleeing heat
+    },
+  },
 }
 
-const IDEAL_TEMP_F = 72
+const SUN_IDEAL_F = 72 // ideal high for "find sun"
+const HEAT_IDEAL_F = 70 // ideal high for "escape heat" relief
 
-// Fetch a batched 7-day daily forecast for every destination in one request.
+// Fetch a batched 7-day daily forecast for Seattle + every destination in one
+// request. Returns { origin, destinations } where origin is Seattle's days.
 export async function fetchForecasts() {
-  const lats = DESTINATIONS.map((d) => d.lat.toFixed(4)).join(',')
-  const lons = DESTINATIONS.map((d) => d.lon.toFixed(4)).join(',')
+  const places = [ORIGIN, ...DESTINATIONS]
+  const lats = places.map((d) => d.lat.toFixed(4)).join(',')
+  const lons = places.map((d) => d.lon.toFixed(4)).join(',')
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}` +
     `&daily=${DAILY_FIELDS}` +
@@ -38,63 +62,78 @@ export async function fetchForecasts() {
   // Open-Meteo returns an array when multiple locations are requested.
   const list = Array.isArray(data) ? data : [data]
 
-  return DESTINATIONS.map((dest, i) => {
-    const w = list[i]
-    const d = w?.daily
-    if (!d) return { ...dest, days: [] }
-    const days = d.time.map((date, j) => {
-      const sunSec = d.sunshine_duration?.[j] ?? 0
-      const dayfeatSec = d.daylight_duration?.[j] ?? 1
-      return {
-        date,
-        tempMax: d.temperature_2m_max[j],
-        tempMin: d.temperature_2m_min[j],
-        precip: d.precipitation_sum?.[j] ?? 0,
-        precipProb: d.precipitation_probability_max?.[j] ?? 0,
-        sunFraction: dayfeatSec > 0 ? Math.min(1, sunSec / dayfeatSec) : 0,
-        weatherCode: d.weather_code?.[j] ?? 0,
-      }
-    })
-    return { ...dest, days }
+  const parsed = places.map((place, i) => ({ ...place, days: parseDays(list[i]) }))
+  return { origin: parsed[0], destinations: parsed.slice(1) }
+}
+
+function parseDays(w) {
+  const d = w?.daily
+  if (!d) return []
+  return d.time.map((date, j) => {
+    const sunSec = d.sunshine_duration?.[j] ?? 0
+    const daylightSec = d.daylight_duration?.[j] ?? 1
+    return {
+      date,
+      tempMax: d.temperature_2m_max[j],
+      tempMin: d.temperature_2m_min[j],
+      precip: d.precipitation_sum?.[j] ?? 0,
+      precipProb: d.precipitation_probability_max?.[j] ?? 0,
+      sunFraction: daylightSec > 0 ? Math.min(1, sunSec / daylightSec) : 0,
+      weatherCode: d.weather_code?.[j] ?? 0,
+    }
   })
 }
 
-// Does a single day meet the user's criteria?
-export function dayQualifies(day, c) {
-  return (
+// Evaluate one day against the chosen mode/criteria, given Seattle's same-day
+// forecast (originDay) for the relative "cooler than home" comparison.
+// Returns { qualifies, score (0-100), coolerBy (°F cooler than Seattle) }.
+export function evaluateDay(day, originDay, mode, c) {
+  const coolerBy = originDay ? originDay.tempMax - day.tempMax : 0
+
+  if (mode === 'heat') {
+    const qualifies =
+      coolerBy >= c.minCoolerF &&
+      day.tempMax <= c.maxTempF &&
+      day.tempMax >= c.minTempF &&
+      day.precipProb <= c.maxPrecipProb
+    // Reward relief (cooler = better) plus landing near a pleasant high.
+    const reliefScore = Math.min(100, Math.max(0, coolerBy) * 5) // 20°F cooler => 100
+    const pleasantScore = Math.max(0, 100 - Math.abs(day.tempMax - HEAT_IDEAL_F) * 4)
+    const score = Math.round(reliefScore * 0.6 + pleasantScore * 0.4)
+    return { qualifies, score, coolerBy }
+  }
+
+  // sun mode (default)
+  const qualifies =
     day.tempMax <= c.maxTempF &&
     day.tempMax >= c.minTempF &&
     day.sunFraction >= c.minSunFraction &&
     day.precip <= c.maxPrecipIn &&
     day.precipProb <= c.maxPrecipProb
-  )
-}
-
-// 0-100 comfort score for a day (used to pick the *best* day and to rank).
-export function dayScore(day) {
-  const tempPenalty = Math.abs(day.tempMax - IDEAL_TEMP_F) // °F from ideal
-  const tempScore = Math.max(0, 100 - tempPenalty * 4)
+  const tempScore = Math.max(0, 100 - Math.abs(day.tempMax - SUN_IDEAL_F) * 4)
   const sunScore = day.sunFraction * 100
   const rainScore = Math.max(0, 100 - day.precipProb - day.precip * 200)
-  return Math.round(tempScore * 0.4 + sunScore * 0.4 + rainScore * 0.2)
+  const score = Math.round(tempScore * 0.4 + sunScore * 0.4 + rainScore * 0.2)
+  return { qualifies, score, coolerBy }
 }
 
-// "Worth the drive" — trade a day's comfort score against how far you'd travel.
-// weight is comfort-points lost per mile (e.g. 0.04 => 100 mi costs 4 points).
-// A nearer, slightly-worse day can out-rank a far, slightly-nicer one.
-export function worthScore(comfort, miles, weight) {
-  return Math.round(comfort - miles * weight)
+// "Worth the drive" — trade a day's score against how far you'd travel.
+// weight is points lost per mile (e.g. 0.04 => 100 mi costs 4 points).
+export function worthScore(score, miles, weight) {
+  return Math.round(score - miles * weight)
 }
 
-// For a destination, find its best qualifying day (or best overall if none qualify).
-export function bestDay(dest, criteria) {
-  if (!dest.days?.length) return null
-  const scored = dest.days.map((day) => ({
-    ...day,
-    score: dayScore(day),
-    qualifies: dayQualifies(day, criteria),
-  }))
-  const qualifying = scored.filter((d) => d.qualifies)
-  const pool = qualifying.length ? qualifying : scored
-  return pool.reduce((best, d) => (d.score > best.score ? d : best))
+// Score a destination across its 7 days against Seattle. Returns every day
+// (with qualifies/score/coolerBy attached) plus the single best day.
+export function scoreDestination(dest, originDays, mode, c) {
+  if (!dest.days?.length) return { best: null, days: [] }
+  const originByDate = new Map((originDays || []).map((d) => [d.date, d]))
+  const days = dest.days.map((day, i) => {
+    const originDay = originByDate.get(day.date) || originDays?.[i]
+    return { ...day, ...evaluateDay(day, originDay, mode, c) }
+  })
+  const qualifying = days.filter((d) => d.qualifies)
+  const pool = qualifying.length ? qualifying : days
+  const best = pool.reduce((b, d) => (d.score > b.score ? d : b))
+  return { best, days }
 }
