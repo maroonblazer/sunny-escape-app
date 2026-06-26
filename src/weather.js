@@ -3,6 +3,8 @@ import { DESTINATIONS, ORIGIN } from './destinations.js'
 const DAILY_FIELDS = [
   'temperature_2m_max',
   'temperature_2m_min',
+  'apparent_temperature_max', // "feels like" — folds in humidity, wind, sun
+  'apparent_temperature_min',
   'precipitation_sum',
   'precipitation_probability_max',
   'sunshine_duration',
@@ -76,6 +78,9 @@ function parseDays(w) {
       date,
       tempMax: d.temperature_2m_max[j],
       tempMin: d.temperature_2m_min[j],
+      // Fall back to air temp if apparent temp is missing for a day.
+      feelsMax: d.apparent_temperature_max?.[j] ?? d.temperature_2m_max[j],
+      feelsMin: d.apparent_temperature_min?.[j] ?? d.temperature_2m_min[j],
       precip: d.precipitation_sum?.[j] ?? 0,
       precipProb: d.precipitation_probability_max?.[j] ?? 0,
       sunFraction: daylightSec > 0 ? Math.min(1, sunSec / daylightSec) : 0,
@@ -88,29 +93,31 @@ function parseDays(w) {
 // forecast (originDay) for the relative "cooler than home" comparison.
 // Returns { qualifies, score (0-100), coolerBy (°F cooler than Seattle) }.
 export function evaluateDay(day, originDay, mode, c) {
-  const coolerBy = originDay ? originDay.tempMax - day.tempMax : 0
+  // Comfort is about how it feels, so judge on apparent ("feels like") temps,
+  // including the cooler-than-Seattle comparison.
+  const coolerBy = originDay ? originDay.feelsMax - day.feelsMax : 0
 
   if (mode === 'heat') {
     const qualifies =
       coolerBy >= c.minCoolerF &&
-      day.tempMax <= c.maxTempF &&
-      day.tempMax >= c.minTempF &&
+      day.feelsMax <= c.maxTempF &&
+      day.feelsMax >= c.minTempF &&
       day.precipProb <= c.maxPrecipProb
     // Reward relief (cooler = better) plus landing near a pleasant high.
     const reliefScore = Math.min(100, Math.max(0, coolerBy) * 5) // 20°F cooler => 100
-    const pleasantScore = Math.max(0, 100 - Math.abs(day.tempMax - HEAT_IDEAL_F) * 4)
+    const pleasantScore = Math.max(0, 100 - Math.abs(day.feelsMax - HEAT_IDEAL_F) * 4)
     const score = Math.round(reliefScore * 0.6 + pleasantScore * 0.4)
     return { qualifies, score, coolerBy }
   }
 
   // sun mode (default)
   const qualifies =
-    day.tempMax <= c.maxTempF &&
-    day.tempMax >= c.minTempF &&
+    day.feelsMax <= c.maxTempF &&
+    day.feelsMax >= c.minTempF &&
     day.sunFraction >= c.minSunFraction &&
     day.precip <= c.maxPrecipIn &&
     day.precipProb <= c.maxPrecipProb
-  const tempScore = Math.max(0, 100 - Math.abs(day.tempMax - SUN_IDEAL_F) * 4)
+  const tempScore = Math.max(0, 100 - Math.abs(day.feelsMax - SUN_IDEAL_F) * 4)
   const sunScore = day.sunFraction * 100
   const rainScore = Math.max(0, 100 - day.precipProb - day.precip * 200)
   const score = Math.round(tempScore * 0.4 + sunScore * 0.4 + rainScore * 0.2)

@@ -139,25 +139,25 @@ export default function App() {
             <div className="control">
               <label>At least cooler by <b>{criteria.minCoolerF}°F</b></label>
               <input type="range" min="0" max="25" value={criteria.minCoolerF} onChange={setC('minCoolerF')} />
-              <small>vs. Seattle's forecast that day</small>
+              <small>vs. Seattle's feels-like that day</small>
             </div>
             <div className="control">
-              <label>Comfortable high under <b>{criteria.maxTempF}°F</b></label>
+              <label>Comfortable feels-like under <b>{criteria.maxTempF}°F</b></label>
               <input type="range" min="65" max="90" value={criteria.maxTempF} onChange={setC('maxTempF')} />
             </div>
             <div className="control">
-              <label>But not below <b>{criteria.minTempF}°F</b></label>
+              <label>But feels no colder than <b>{criteria.minTempF}°F</b></label>
               <input type="range" min="30" max="65" value={criteria.minTempF} onChange={setC('minTempF')} />
             </div>
           </>
         ) : (
           <>
             <div className="control">
-              <label>Max temp <b>{criteria.maxTempF}°F</b></label>
+              <label>Max feels-like <b>{criteria.maxTempF}°F</b></label>
               <input type="range" min="70" max="100" value={criteria.maxTempF} onChange={setC('maxTempF')} />
             </div>
             <div className="control">
-              <label>Min temp <b>{criteria.minTempF}°F</b></label>
+              <label>Min feels-like <b>{criteria.minTempF}°F</b></label>
               <input type="range" min="40" max="75" value={criteria.minTempF} onChange={setC('minTempF')} />
             </div>
             <div className="control">
@@ -208,13 +208,14 @@ export default function App() {
                 {isHeat ? (
                   <>
                     <span><b>{Math.round(topPick.best.coolerBy)}°F cooler</b> than home</span>
-                    <span><b>{Math.round(topPick.best.tempMax)}°F</b> high (Seattle {Math.round(topPick.best.tempMax + topPick.best.coolerBy)}°F)</span>
+                    <span><b>{Math.round(topPick.best.feelsMax)}°F</b> feels-like (home feels {Math.round(topPick.best.feelsMax) + Math.round(topPick.best.coolerBy)}°F)</span>
+                    <span>{Math.round(topPick.best.tempMax)}° air</span>
                     <span className="winner-score">relief {topPick.best.score} · value {topPick.worth}</span>
                   </>
                 ) : (
                   <>
                     <span>{weatherLabel(topPick.best.weatherCode)}</span>
-                    <span><b>{Math.round(topPick.best.tempMax)}°F</b> / {Math.round(topPick.best.tempMin)}°F</span>
+                    <span><b>{Math.round(topPick.best.feelsMax)}°F</b> feels-like · {Math.round(topPick.best.tempMax)}° air</span>
                     <span>{Math.round(topPick.best.sunFraction * 100)}% sun</span>
                     <span>{Math.round(topPick.best.precipProb)}% rain</span>
                     <span className="winner-score">comfort {topPick.best.score} · value {topPick.worth}</span>
@@ -247,7 +248,7 @@ export default function App() {
                   </span>
                   <span className="row-miles">{r.miles} mi</span>
                   <span className="row-temp">
-                    {r.best ? `${Math.round(r.best.tempMax)}°F` : '—'}
+                    {r.best ? `${Math.round(r.best.feelsMax)}°F` : '—'}
                   </span>
                   <span className="row-sun">
                     {r.best
@@ -273,7 +274,7 @@ export default function App() {
                       <div key={d.date} className={`day ${d.qualifies ? 'good' : ''}`}>
                         <div className="day-name">{dayName(d.date)}</div>
                         <div className="day-icon">{weatherLabel(d.weatherCode).split(' ')[0]}</div>
-                        <div className="day-temp">{Math.round(d.tempMax)}°</div>
+                        <div className="day-temp">{Math.round(d.feelsMax)}°</div>
                         <div className="day-sun">
                           {isHeat ? coolerText(d.coolerBy) : `${Math.round(d.sunFraction * 100)}%☀`}
                         </div>
@@ -289,6 +290,7 @@ export default function App() {
 
       <footer className="foot">
         Weather by <a href="https://open-meteo.com" target="_blank" rel="noreferrer">Open-Meteo</a> ·
+        {' '}temperatures shown are “feels-like” (apparent) ·
         {' '}distances are straight-line from Seattle ·
         {' '}{isHeat ? '❄️ = at least your target cooler than Seattle' : '☀️ = matches your comfort criteria'}
       </footer>

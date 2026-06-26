@@ -64,7 +64,7 @@ export default function Map({ results, selected, selectedName, onSelect }) {
         zIndexOffset: isSel ? 1000 : 0,
       })
         .bindTooltip(
-          `${r.name}<br>${r.best ? Math.round(r.best.tempMax) + '°F · ' + Math.round(r.best.sunFraction * 100) + '% sun' : 'no data'}`,
+          `${r.name}<br>${r.best ? 'feels ' + Math.round(r.best.feelsMax) + '°F · ' + Math.round(r.best.sunFraction * 100) + '% sun' : 'no data'}`,
           { direction: 'top' },
         )
         .on('click', () => onSelect?.(r.name))
