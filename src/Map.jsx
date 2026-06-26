@@ -72,11 +72,15 @@ export default function Map({ results, selected, selectedName, onSelect }) {
     })
   }, [results, selected, onSelect])
 
-  // Pan only when the user actively picks a destination (not the default
-  // winner selection on load, which would override the overview view).
+  // When the user actively picks a destination, fly to it and zoom in to a
+  // town-level view. (Skipped for the default winner selection on load, which
+  // would otherwise override the overview.)
+  const FOCUS_ZOOM = 8
   useEffect(() => {
     if (selectedName && selected && mapRef.current) {
-      mapRef.current.panTo([selected.lat, selected.lon])
+      mapRef.current.flyTo([selected.lat, selected.lon], FOCUS_ZOOM, {
+        duration: 0.9,
+      })
     }
   }, [selectedName, selected])
 
