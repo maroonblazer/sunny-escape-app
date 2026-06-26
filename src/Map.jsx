@@ -27,13 +27,13 @@ export default function Map({ results, selected, selectedName, onSelect }) {
   // Init map once.
   useEffect(() => {
     if (mapRef.current) return
-    // Frame the Pacific Northwest core (Seattle + most drive-able picks) on
-    // load. Far Southwest spots stay one zoom-out away (minZoom 3).
+    // Frame the PNW + southern interior BC down to Northern California on
+    // load. Farther spots (Southwest, Prince George) stay a zoom-out away.
     const map = L.map(containerRef.current, {
       scrollWheelZoom: false,
       minZoom: 3,
       zoomSnap: 0.1,
-    }).setView([47, -121], 6)
+    }).setView([46, -120.5], 5)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 12,
