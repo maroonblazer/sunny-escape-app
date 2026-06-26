@@ -52,7 +52,47 @@ export const DESTINATIONS = [
   { name: 'Reno, NV', lat: 39.5296, lon: -119.8138 },
   { name: 'Salt Lake City, UT', lat: 40.7608, lon: -111.8910 },
   { name: 'Missoula, MT', lat: 46.8721, lon: -113.9940 },
+  { name: 'Whitefish, MT', lat: 48.4111, lon: -114.3376 },
   { name: 'Bozeman, MT', lat: 45.6770, lon: -111.0429 },
+  { name: 'Billings, MT', lat: 45.7833, lon: -108.5007 },
+  { name: 'Baker City, OR', lat: 44.7749, lon: -117.8344 },
+  { name: 'Idaho Falls, ID', lat: 43.4917, lon: -112.0339 },
+  { name: 'Jackson, WY', lat: 43.4799, lon: -110.7624 },
+  { name: 'Cody, WY', lat: 44.5263, lon: -109.0565 },
+  // California — coast, Sierra, and Central Valley
+  { name: 'Truckee, CA', lat: 39.3280, lon: -120.1833 },
+  { name: 'South Lake Tahoe, CA', lat: 38.9399, lon: -119.9772 },
+  { name: 'Bishop, CA', lat: 37.3614, lon: -118.3951 },
+  { name: 'Monterey, CA', lat: 36.6002, lon: -121.8947 },
+  { name: 'Fresno, CA', lat: 36.7378, lon: -119.7871 },
+  { name: 'San Luis Obispo, CA', lat: 35.2828, lon: -120.6596 },
+  { name: 'Bakersfield, CA', lat: 35.3733, lon: -119.0187 },
+  { name: 'Santa Barbara, CA', lat: 34.4208, lon: -119.6982 },
+  { name: 'Los Angeles, CA', lat: 34.0522, lon: -118.2437 },
+  { name: 'Palm Springs, CA', lat: 33.8303, lon: -116.5453 },
+  { name: 'San Diego, CA', lat: 32.7157, lon: -117.1611 },
+  // Nevada
+  { name: 'Elko, NV', lat: 40.8324, lon: -115.7631 },
+  { name: 'Las Vegas, NV', lat: 36.1699, lon: -115.1398 },
+  // Utah
+  { name: 'Park City, UT', lat: 40.6461, lon: -111.4980 },
+  { name: 'Moab, UT', lat: 38.5733, lon: -109.5498 },
+  { name: 'St. George, UT', lat: 37.0965, lon: -113.5684 },
+  // Arizona
+  { name: 'Flagstaff, AZ', lat: 35.1983, lon: -111.6513 },
+  { name: 'Sedona, AZ', lat: 34.8697, lon: -111.7610 },
+  { name: 'Prescott, AZ', lat: 34.5400, lon: -112.4685 },
+  { name: 'Phoenix, AZ', lat: 33.4484, lon: -112.0740 },
+  { name: 'Tucson, AZ', lat: 32.2226, lon: -110.9747 },
+  // Colorado
+  { name: 'Steamboat Springs, CO', lat: 40.4850, lon: -106.8317 },
+  { name: 'Grand Junction, CO', lat: 39.0639, lon: -108.5506 },
+  { name: 'Denver, CO', lat: 39.7392, lon: -104.9903 },
+  { name: 'Durango, CO', lat: 37.2753, lon: -107.8801 },
+  // New Mexico
+  { name: 'Taos, NM', lat: 36.4072, lon: -105.5731 },
+  { name: 'Santa Fe, NM', lat: 35.6870, lon: -105.9378 },
+  { name: 'Albuquerque, NM', lat: 35.0844, lon: -106.6504 },
 ]
 
 // Great-circle distance in miles (Haversine).

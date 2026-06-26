@@ -196,7 +196,7 @@ export default function App() {
             </div>
 
             <div className="map-wrap">
-              <Map results={results} selected={selected} onSelect={setSelectedName} />
+              <Map results={results} selected={selected} selectedName={selectedName} onSelect={setSelectedName} />
               {selected && (
                 <div className="detail">
                   <h4>{selected.name} — 7-day outlook</h4>

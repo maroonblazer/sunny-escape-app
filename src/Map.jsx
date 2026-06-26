@@ -13,7 +13,7 @@ function dot(color) {
   })
 }
 
-export default function Map({ results, selected, onSelect }) {
+export default function Map({ results, selected, selectedName, onSelect }) {
   const mapRef = useRef(null)
   const layerRef = useRef(null)
   const containerRef = useRef(null)
@@ -21,10 +21,12 @@ export default function Map({ results, selected, onSelect }) {
   // Init map once.
   useEffect(() => {
     if (mapRef.current) return
-    const map = L.map(containerRef.current, { scrollWheelZoom: false }).setView(
-      [ORIGIN.lat, ORIGIN.lon],
-      6,
-    )
+    // Western-US overview so all destinations (PNW down to the Southwest)
+    // are in frame on load; users can zoom/pan from here.
+    const map = L.map(containerRef.current, {
+      scrollWheelZoom: false,
+      minZoom: 3,
+    }).setView([39.5, -114], 4)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
       maxZoom: 12,
@@ -34,6 +36,11 @@ export default function Map({ results, selected, onSelect }) {
       .bindTooltip('Seattle (home)', { direction: 'top' })
     mapRef.current = map
     layerRef.current = L.layerGroup().addTo(map)
+
+    // Keep tiles filling the container if its size settles after mount
+    // (grid/flex layout, fonts, the result banner above all shift things).
+    const ro = new ResizeObserver(() => map.invalidateSize())
+    ro.observe(containerRef.current)
   }, [])
 
   // Redraw markers when results change.
@@ -53,12 +60,13 @@ export default function Map({ results, selected, onSelect }) {
     })
   }, [results, onSelect])
 
-  // Pan to selected.
+  // Pan only when the user actively picks a destination (not the default
+  // winner selection on load, which would override the overview view).
   useEffect(() => {
-    if (selected && mapRef.current) {
+    if (selectedName && selected && mapRef.current) {
       mapRef.current.panTo([selected.lat, selected.lon])
     }
-  }, [selected])
+  }, [selectedName, selected])
 
   return <div ref={containerRef} className="map" />
 }
